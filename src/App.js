@@ -1,55 +1,74 @@
-import Card from "./components/Card";
+import axios from "axios";
+import { Route, Routes } from "react-router-dom";
 import Header from "./components/Header";
 import Drawer from "./components/Drawer";
 import React from "react";
+import Home from "./pages/Home";
+import Profile from "./pages/Profile";
 
 function App() {
   const [items, setItems] = React.useState([]);
   const [cartItems, setCartItems] = React.useState([]);
+  const [searchValue, setSearchValue] = React.useState("");
   const [cartOpened, setCartOpened] = React.useState(false);
 
   React.useEffect(() => {
-    fetch("https://65a5430952f07a8b4a3eba13.mockapi.io/items")
+    axios
+      .get("https://65a5430952f07a8b4a3eba13.mockapi.io/items")
       .then((res) => {
-        return res.json();
-      })
-      .then((json) => {
-        setItems(json);
+        setItems(res.data);
+      });
+    axios
+      .get("https://65a5430952f07a8b4a3eba13.mockapi.io/cart")
+      .then((res) => {
+        setCartItems(res.data);
       });
   }, []);
 
   const onAddToCart = (obj) => {
+    axios.post("https://65a5430952f07a8b4a3eba13.mockapi.io/cart", obj);
     setCartItems((prev) => [...prev, obj]);
+  };
+
+  const onRemoveItem = (id) => {
+    axios.delete(`https://65a5430952f07a8b4a3eba13.mockapi.io/cart/${id}`);
+    setCartItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const onChangeSearchInput = (event) => {
+    setSearchValue(event.target.value);
   };
 
   return (
     <div className="wrapper clear">
       {cartOpened && (
-        <Drawer items={cartItems} onClose={() => setCartOpened(false)} />
+        <Drawer
+          items={cartItems}
+          onClose={() => setCartOpened(false)}
+          onRemove={onRemoveItem}
+        />
       )}
       <Header onClickCart={() => setCartOpened(true)} />
 
-      <div className="content p-40">
-        <div className="d-flex align-center justify-between mb-40">
-          <h1>All sneakers</h1>
-          <div className="search-block d-flex">
-            <img className="opacity-4" src="/img/search.svg" alt="Search" />
-            <input placeholder="Search..." />
-          </div>
-        </div>
-
-        <div className="d-flex flex-wrap">
-          {items.map((item) => (
-            <Card
-              title={item.title}
-              price={item.price}
-              imageUrl={item.imageUrl}
-              onClickFavorite={() => console.log("Добавили в закладки")}
-              onClickPlus={(obj) => onAddToCart(obj)}
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Home
+              items={items}
+              searchValue={searchValue}
+              setSearchValue={setSearchValue}
+              onChangeSearchInput={onChangeSearchInput}
+              onAddToCart={onAddToCart}
             />
-          ))}
-        </div>
-      </div>
+          }
+          exact
+        />
+      </Routes>
+
+      <Routes>
+        <Route path="/profile" element={<Profile />} exact />
+      </Routes>
     </div>
   );
 }
